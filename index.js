@@ -35,6 +35,7 @@ exports.deploy = function(codePackage, config, callback, logger, lambda) {
     Description: config.description,
     Handler: config.handler,
     Role: config.role,
+    Runtime: "runtime" in config ? config.runtime : "nodejs4.3",
     Timeout: config.timeout,
     MemorySize: config.memorySize
   };
@@ -135,7 +136,6 @@ exports.deploy = function(codePackage, config, callback, logger, lambda) {
       }
 
       params['Code'] = { ZipFile: data };
-      params['Runtime'] = "runtime" in config ? config.runtime : "nodejs4.3";
       params['Publish'] = isPublish;
       lambda.createFunction(params, function(err, data) {
         if (err) {
