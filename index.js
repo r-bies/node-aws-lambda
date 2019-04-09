@@ -35,7 +35,7 @@ exports.deploy = function(codePackage, config, callback, logger, lambda) {
     Description: config.description,
     Handler: config.handler,
     Role: config.role,
-    Runtime: "runtime" in config ? config.runtime : "nodejs4.3",
+    Runtime: "runtime" in config ? config.runtime : "nodejs8.10",
     Timeout: config.timeout,
     MemorySize: config.memorySize
   };
