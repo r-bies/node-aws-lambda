@@ -104,12 +104,11 @@ exports.deploy = function(codePackage, config, callback, logger, lambda) {
 
   var updateFunction = (callback) => {
     updateFunctionPromise().then(() => {
-      console.log('call updateEventSources()')
       updateEventSources(callback)
     }).catch(err => {
       callback(err);
     })
-  }
+  };
 
   var updateFunctionPromise = async (callback) => {
     const fsReadFilePromise = () => new Promise((resolve, reject) => {
@@ -140,7 +139,6 @@ exports.deploy = function(codePackage, config, callback, logger, lambda) {
     });
 
     const lambdaUpdateFunctionConfiguration = (params) => new Promise((resolve, reject) => {
-      console.log('call lambdaUpdateFunctionConfiguration')
       lambda.updateFunctionConfiguration(params, function (err, data) {
         if (err) {
           var warning = 'Update function configuration failed. '
@@ -163,7 +161,6 @@ exports.deploy = function(codePackage, config, callback, logger, lambda) {
           });
         }).then(status => {
           if (status === "InProgress") {
-            console.log(".");
             return loop();
           } else {
             return Promise.resolve();
