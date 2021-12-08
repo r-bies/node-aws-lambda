@@ -122,6 +122,7 @@ exports.deploy = function(codePackage, config, callback, logger, lambda) {
     });
 
     const lambdaUpdateFunctionCodePromise = (functionName, archive, isPublish) => new Promise((resolve, reject) => {
+      logger(`updateFunctionCode: ${functionName}`);
       lambda.updateFunctionCode({
         FunctionName: functionName,
         ZipFile: archive,
