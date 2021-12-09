@@ -102,31 +102,78 @@ exports.deploy = function(codePackage, config, callback, logger, lambda) {
     );
   };
 
-  var updateFunction = function(callback) {
-    fs.readFile(codePackage, function(err, data) {
-      if(err) {
-        return callback('Error reading specified package "'+ codePackage + '"');
-      }
+  var updateFunction = (callback) => {
+    updateFunctionPromise().then(() => {
+      updateEventSources(callback)
+    }).catch(err => {
+      callback(err);
+    })
+  };
 
-      lambda.updateFunctionCode({FunctionName: params.FunctionName, ZipFile: data, Publish: isPublish}, function(err, data) {
+  var updateFunctionPromise = async (callback) => {
+    const fsReadFilePromise = () => new Promise((resolve, reject) => {
+      fs.readFile(codePackage, function(err, data) {
+        if (err) {
+          return reject('Error reading specified package "' + codePackage + '"');
+        } else {
+          return resolve(data);
+        }
+      })
+    });
+
+    const lambdaUpdateFunctionCodePromise = (functionName, archive, isPublish) => new Promise((resolve, reject) => {
+      logger(`updateFunctionCode: ${functionName}`);
+      lambda.updateFunctionCode({
+        FunctionName: functionName,
+        ZipFile: archive,
+        Publish: isPublish
+      }, function (err, data) {
         if (err) {
           var warning = 'Package upload failed. '
           warning += 'Check your iam:PassRole permissions.'
           logger(warning);
-          callback(err)
+          return reject(err);
         } else {
-          lambda.updateFunctionConfiguration(params, function(err, data) {
-            if (err) {
-              var warning = 'Update function configuration failed. '
-              logger(warning);
-              callback(err);
-            } else {
-              updateEventSources(callback);
-            }
-          });
+          return resolve(data);
         }
       });
     });
+
+    const sleepPromise = (millsec) => {
+      return new Promise(resolve => {
+        setTimeout(() => resolve(resolve()), millsec)
+      })
+    }
+
+    const lambdaWaitFunctionUpdateFinishedPromise = (functionName) => {
+      const checkUpdateFinishedInterval = 1000; // LastUpdateStatus check interval(msec)
+      const loop = async () => {
+        await sleepPromise(checkUpdateFinishedInterval);
+        const result = await lambda.getFunction({FunctionName: functionName}).promise();
+        if (result.Configuration.LastUpdateStatus === "InProgress") {
+          return loop();
+        }
+      }
+
+      return loop();
+    }
+
+    const lambdaUpdateFunctionConfigurationPromise = (params) => new Promise((resolve, reject) => {
+      lambda.updateFunctionConfiguration(params, function (err, data) {
+        if (err) {
+          var warning = 'Update function configuration failed. '
+          logger(warning);
+          return reject(err);
+        } else {
+          return resolve(data);
+        }
+      });
+    });
+
+    const data = await fsReadFilePromise(codePackage);
+    await lambdaUpdateFunctionCodePromise(params.FunctionName, data, isPublish);
+    await lambdaWaitFunctionUpdateFinishedPromise(params.FunctionName);
+    await lambdaUpdateFunctionConfigurationPromise(params);
   };
 
   var createFunction = function(callback) {
