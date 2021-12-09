@@ -139,7 +139,26 @@ exports.deploy = function(codePackage, config, callback, logger, lambda) {
       });
     });
 
-    const lambdaUpdateFunctionConfiguration = (params) => new Promise((resolve, reject) => {
+    const sleepPromise = (millsec) => {
+      return new Promise(resolve => {
+        setTimeout(() => resolve(resolve()), millsec)
+      })
+    }
+
+    const lambdaWaitFunctionUpdateFinishedPromise = (functionName) => {
+      const checkUpdateFinishedInterval = 1000; // LastUpdateStatus check interval(msec)
+      const loop = async () => {
+        await sleepPromise(checkUpdateFinishedInterval);
+        const result = await lambda.getFunction({FunctionName: functionName}).promise();
+        if (result.Configuration.LastUpdateStatus === "InProgress") {
+          return loop();
+        }
+      }
+
+      return loop();
+    }
+
+    const lambdaUpdateFunctionConfigurationPromise = (params) => new Promise((resolve, reject) => {
       lambda.updateFunctionConfiguration(params, function (err, data) {
         if (err) {
           var warning = 'Update function configuration failed. '
@@ -151,31 +170,10 @@ exports.deploy = function(codePackage, config, callback, logger, lambda) {
       });
     });
 
-    const lambdaWaitFunctionUpdateFinished = (functionName) => {
-      function loop() {
-        return new Promise(function (resolve, reject) {
-          lambda.getFunction({FunctionName: functionName}).promise()
-              .then(result => {
-                return resolve(result.Configuration.LastUpdateStatus);
-              }).catch(err => {
-            return reject(err);
-          });
-        }).then(status => {
-          if (status === "InProgress") {
-            return loop();
-          } else {
-            return Promise.resolve();
-          }
-        });
-      }
-
-      return loop();
-    };
-
     const data = await fsReadFilePromise(codePackage);
     await lambdaUpdateFunctionCodePromise(params.FunctionName, data, isPublish);
-    await lambdaWaitFunctionUpdateFinished(params.FunctionName);
-    await lambdaUpdateFunctionConfiguration(params);
+    await lambdaWaitFunctionUpdateFinishedPromise(params.FunctionName);
+    await lambdaUpdateFunctionConfigurationPromise(params);
   };
 
   var createFunction = function(callback) {
