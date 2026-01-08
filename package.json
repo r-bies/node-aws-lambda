@@ -20,13 +20,13 @@
     "url": "https://github.com/ThoughtWorksStudios/node-aws-lambda/issues"
   },
   "dependencies": {
-    "async": "^1.0.0",
-    "aws-sdk": "2.x.x",
-    "https-proxy-agent": "^1.0.0"
+    "async": "^3.2.6",
+    "aws-sdk": "^2.1693.0",
+    "https-proxy-agent": "^7.0.6"
   },
   "devDependencies": {
-    "mocha": "^2.2.1",
-    "chai": "^2.1.1",
-    "node-uuid": "^1.4.3"
+    "mocha": "^11.7.5",
+    "chai": "^6.2.2",
+    "node-uuid": "^1.4.8"
   }
 }
